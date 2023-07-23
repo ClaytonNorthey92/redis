@@ -52,6 +52,7 @@ typedef void(linenoiseCompletionCallback)(const char *, linenoiseCompletions *);
 typedef char*(linenoiseHintsCallback)(const char *, int *color, int *bold);
 typedef void(linenoiseFreeHintsCallback)(void *);
 typedef void(linenoiseReverseSearchModeToggleCallback)(void);
+typedef void(linenoiseHistoryForeachCallback)(char * history_item);
 void linenoiseSetCompletionCallback(linenoiseCompletionCallback *);
 void linenoiseSetHintsCallback(linenoiseHintsCallback *);
 void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback *);
@@ -69,6 +70,7 @@ void linenoiseSetMultiLine(int ml);
 void linenoisePrintKeyCodes(void);
 void linenoiseMaskModeEnable(void);
 void linenoiseMaskModeDisable(void);
+void linenoiseHistoryForeach(linenoiseHistoryForeachCallback * cb);
 
 #ifdef __cplusplus
 }

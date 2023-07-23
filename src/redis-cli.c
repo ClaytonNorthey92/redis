@@ -1509,12 +1509,24 @@ static sds getHintForInput(const char *charinput) {
     return hint;
 }
 
+static void printHistoryItem(char * history_item) {
+    printf("%s\n", history_item);
+}
+
+static sds * getHintForHistorySearch(char * buf, int reverse) {
+    linenoiseHistoryForeach(printHistoryItem);
+    return NULL;
+}
+
 /* Linenoise hints callback. */
 static char *hintsCallback(const char *buf, int *color, int *bold) {
     if (context->reverseSearchMode) {
-        // to-do Clayton is here
-    } else {
+        sds * hint = getHintForHistorySearch(buf, 1);
+        if (hint == NULL) {
+            return NULL;
+        }
 
+        return NULL;
     }
 
     if (!pref.hints) return NULL;
