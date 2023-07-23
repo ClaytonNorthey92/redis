@@ -1511,6 +1511,12 @@ static sds getHintForInput(const char *charinput) {
 
 /* Linenoise hints callback. */
 static char *hintsCallback(const char *buf, int *color, int *bold) {
+    if (context->reverseSearchMode) {
+        // to-do Clayton is here
+    } else {
+
+    }
+
     if (!pref.hints) return NULL;
 
     sds hint = getHintForInput(buf);
@@ -3313,6 +3319,16 @@ static int isSensitiveCommand(int argc, char **argv) {
     return 0;
 }
 
+static void reverseSearchModeToggleCallback(void) {
+    if (context->reverseSearchMode) {
+        context->reverseSearchMode = 0;
+        cliRefreshPrompt();
+    } else {
+        context->reverseSearchMode = 1;
+        snprintf(config.prompt,sizeof(config.prompt),"%s","reverse-i-search>");
+    }
+}
+
 static void repl(void) {
     sds historyfile = NULL;
     int history = 0;
@@ -3328,11 +3344,13 @@ static void repl(void) {
         cliInitHelp();
     }
 
+    context->reverseSearchMode = 0;
     config.interactive = 1;
     linenoiseSetMultiLine(1);
     linenoiseSetCompletionCallback(completionCallback);
     linenoiseSetHintsCallback(hintsCallback);
     linenoiseSetFreeHintsCallback(freeHintsCallback);
+    linenoiseSetReverseSearchModeToggleCallback(reverseSearchModeToggleCallback);
 
     /* Only use history and load the rc file when stdin is a tty. */
     if (isatty(fileno(stdin))) {

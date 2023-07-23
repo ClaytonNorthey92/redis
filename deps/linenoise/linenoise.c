@@ -125,6 +125,7 @@ static char *unsupported_term[] = {"dumb","cons25","emacs",NULL};
 static linenoiseCompletionCallback *completionCallback = NULL;
 static linenoiseHintsCallback *hintsCallback = NULL;
 static linenoiseFreeHintsCallback *freeHintsCallback = NULL;
+static linenoiseReverseSearchModeToggleCallback * reverseSearchModeToggleCallback = NULL;
 
 static struct termios orig_termios; /* In order to restore at exit.*/
 static int maskmode = 0; /* Show "***" instead of input. For passwords. */
@@ -169,6 +170,7 @@ enum KEY_ACTION{
 	ENTER = 13,         /* Enter */
 	CTRL_N = 14,        /* Ctrl-n */
 	CTRL_P = 16,        /* Ctrl-p */
+    CTRL_R = 18, /* Crtl-r */
 	CTRL_T = 20,        /* Ctrl-t */
 	CTRL_U = 21,        /* Ctrl+u */
 	CTRL_W = 23,        /* Ctrl+w */
@@ -859,6 +861,10 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         case CTRL_C:     /* ctrl-c */
             errno = EAGAIN;
             return -1;
+        case CTRL_R:
+            reverseSearchModeToggleCallback();
+            refreshLine(&l);
+            break;
         case BACKSPACE:   /* backspace */
         case 8:     /* ctrl-h */
             linenoiseEditBackspace(&l);
@@ -1227,4 +1233,8 @@ int linenoiseHistoryLoad(const char *filename) {
     }
     fclose(fp);
     return 0;
+}
+
+void linenoiseSetReverseSearchModeToggleCallback(linenoiseReverseSearchModeToggleCallback * cb) {
+    reverseSearchModeToggleCallback = cb;
 }

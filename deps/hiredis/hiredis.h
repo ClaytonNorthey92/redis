@@ -293,6 +293,7 @@ typedef struct redisContext {
 
     /* An optional RESP3 PUSH handler */
     redisPushFn *push_cb;
+    int reverseSearchMode;
 } redisContext;
 
 redisContext *redisConnectWithOptions(const redisOptions *options);
