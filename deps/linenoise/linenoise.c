@@ -134,6 +134,8 @@ static int atexit_registered = 0; /* Register atexit just 1 time. */
 static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 static int history_len = 0;
 static char **history = NULL;
+static char * searchResultG = NULL;
+static int reverseSearchMode = 0;
 
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
@@ -169,6 +171,7 @@ enum KEY_ACTION{
 	ENTER = 13,         /* Enter */
 	CTRL_N = 14,        /* Ctrl-n */
 	CTRL_P = 16,        /* Ctrl-p */
+    CTRL_R = 18,        /* Ctrl-p */
 	CTRL_T = 20,        /* Ctrl-t */
 	CTRL_U = 21,        /* Ctrl+u */
 	CTRL_W = 23,        /* Ctrl+w */
@@ -179,6 +182,7 @@ enum KEY_ACTION{
 static void linenoiseAtExit(void);
 int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
+static void refreshSearchResult(char * buf);
 
 /* Debugging macro. */
 #if 0
@@ -549,6 +553,7 @@ static void refreshSingleLine(struct linenoiseState *l) {
     }
     /* Show hits if any. */
     refreshShowHints(&ab,l,plen);
+
     /* Erase to right */
     snprintf(seq,64,"\x1b[0K");
     abAppend(&ab,seq,strlen(seq));
@@ -604,7 +609,11 @@ static void refreshMultiLine(struct linenoiseState *l) {
         unsigned int i;
         for (i = 0; i < l->len; i++) abAppend(&ab,"*",1);
     } else {
-        abAppend(&ab,l->buf,l->len);
+         if (searchResultG) {
+            abAppend(&ab, searchResultG, strlen(searchResultG));
+        } else {
+            abAppend(&ab,l->buf,l->len);
+        }
     }
 
     /* Show hits if any. */
@@ -766,6 +775,7 @@ void linenoiseEditBackspace(struct linenoiseState *l) {
         l->pos--;
         l->len--;
         l->buf[l->len] = '\0';
+        refreshSearchResult(l->buf);
         refreshLine(l);
     }
 }
@@ -829,6 +839,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         nread = read(l.ifd,&c,1);
         if (nread <= 0) return l.len;
 
+
+
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
@@ -891,6 +903,9 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         case CTRL_P:    /* ctrl-p */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
             break;
+        case CTRL_R:
+            reverseSearchMode = !reverseSearchMode;
+            return 0;
         case CTRL_N:    /* ctrl-n */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
             break;
@@ -951,6 +966,9 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             break;
         default:
             if (linenoiseEditInsert(&l,c)) return -1;
+
+            refreshSearchResult(l.buf);
+            refreshLine(&l);
             break;
         case CTRL_U: /* Ctrl+u, delete the whole line. */
             buf[0] = '\0';
@@ -1157,6 +1175,35 @@ int linenoiseHistoryAdd(const char *line) {
     return 1;
 }
 
+static void refreshSearchResult(char * buf) {
+    if (searchResultG != NULL) {
+        free(searchResultG);
+        searchResultG = NULL;
+    }
+
+    if (!reverseSearchMode) {
+        return;
+    }
+
+    linenoiseHistorySearchResult searchResult = linenoiseSearchInHistory(buf);
+    if (searchResult.result && searchResult.len) {
+        char * bold = "\x1B[1m";
+        char * normal = "\x1B[0m";
+        searchResultG = calloc(sizeof(char), searchResult.len + sizeof(bold) + sizeof(normal) + sizeof(normal));
+        
+        char * one = calloc(sizeof(char), searchResult.searchTermIndex + 1);
+        char * two = calloc(sizeof(char), searchResult.searchTermLen +1);
+        char * three = calloc(sizeof(char), searchResult.len - (searchResult.searchTermIndex+searchResult.searchTermLen) + 1);
+        memcpy(one, searchResult.result, searchResult.searchTermIndex);
+        memcpy(two, &searchResult.result[searchResult.searchTermIndex], searchResult.searchTermLen);
+        memcpy(three, &searchResult.result[searchResult.searchTermIndex+searchResult.searchTermLen], searchResult.len - (searchResult.searchTermIndex+searchResult.searchTermLen));
+        sprintf(searchResultG, "%s%s%s%s%s%s", normal, one, bold, two, normal, three);
+        free(one);
+        free(two);
+        free(three);
+    }
+}
+
 /* Set the maximum length for the history. This function can be called even
  * if there is already some history, the function will make sure to retain
  * just the latest 'len' elements if the new history length value is smaller
@@ -1227,4 +1274,24 @@ int linenoiseHistoryLoad(const char *filename) {
     }
     fclose(fp);
     return 0;
+}
+
+linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm) {
+    linenoiseHistorySearchResult result = {0};
+    for (int i = history_len-1;searchTerm && i>=0;i--) {
+        char * found = strstr(history[i], searchTerm);
+        if (found) {
+            int haystackIndex = found - history[i];
+            result.result = history[i];
+            result.len = strlen(history[i]);
+            result.searchTermIndex = haystackIndex;
+            result.searchTermLen = strlen(searchTerm);
+            break;
+        }
+    }
+    return result;
+}
+
+int linenoiseReverseSearchModeEnabled(void) {
+    return reverseSearchMode;
 }

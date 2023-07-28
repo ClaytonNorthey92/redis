@@ -340,6 +340,10 @@ static void cliRefreshPrompt(void) {
     if (config.pubsub_mode)
         prompt = sdscatfmt(prompt,"(subscribed mode)");
 
+    if (linenoiseReverseSearchModeEnabled()) {
+        prompt = sdscatlen(prompt, "(reverse-i-search)", 18);
+    }
+
     /* Copy the prompt in the static buffer. */
     prompt = sdscatlen(prompt,"> ",2);
     snprintf(config.prompt,sizeof(config.prompt),"%s",prompt);
@@ -3345,8 +3349,8 @@ static void repl(void) {
         cliLoadPreferences();
     }
 
-    cliRefreshPrompt();
     while(1) {
+        cliRefreshPrompt();
         line = linenoise(context ? config.prompt : "not connected> ");
         if (line == NULL) {
             /* ^C, ^D or similar. */
