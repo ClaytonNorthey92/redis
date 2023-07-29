@@ -135,6 +135,7 @@ static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 static int history_len = 0;
 static char **history = NULL;
 static char * searchResultG = NULL;
+static char * searchResultFriendlyG = NULL;
 static int reverseSearchMode = 0;
 
 /* The linenoiseState structure represents the state during line editing.
@@ -610,7 +611,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
         for (i = 0; i < l->len; i++) abAppend(&ab,"*",1);
     } else {
          if (searchResultG) {
-            abAppend(&ab, searchResultG, strlen(searchResultG));
+            abAppend(&ab, searchResultFriendlyG, strlen(searchResultFriendlyG));
         } else {
             abAppend(&ab,l->buf,l->len);
         }
@@ -867,6 +868,10 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                 refreshLine(&l);
                 hintsCallback = hc;
             }
+            if (reverseSearchMode && searchResultG != NULL) {
+                memcpy(buf, searchResultG, strlen(searchResultG));
+                return strlen(searchResultG);
+            }
             return (int)l.len;
         case CTRL_C:     /* ctrl-c */
             errno = EAGAIN;
@@ -905,6 +910,11 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             break;
         case CTRL_R:
             reverseSearchMode = !reverseSearchMode;
+            if (reverseSearchMode) {
+                printf("\e[?25l");
+            } else {
+                printf("\e[?25h");
+            }
             return 0;
         case CTRL_N:    /* ctrl-n */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
@@ -1178,7 +1188,9 @@ int linenoiseHistoryAdd(const char *line) {
 static void refreshSearchResult(char * buf) {
     if (searchResultG != NULL) {
         free(searchResultG);
+        free(searchResultFriendlyG);
         searchResultG = NULL;
+        searchResultFriendlyG = NULL;
     }
 
     if (!reverseSearchMode) {
@@ -1189,7 +1201,9 @@ static void refreshSearchResult(char * buf) {
     if (searchResult.result && searchResult.len) {
         char * bold = "\x1B[1m";
         char * normal = "\x1B[0m";
-        searchResultG = calloc(sizeof(char), searchResult.len + sizeof(bold) + sizeof(normal) + sizeof(normal));
+
+        searchResultG = calloc(sizeof(char), searchResult.len);
+        searchResultFriendlyG = calloc(sizeof(char), searchResult.len + sizeof(normal) + sizeof(bold) + sizeof(normal));
         
         char * one = calloc(sizeof(char), searchResult.searchTermIndex + 1);
         char * two = calloc(sizeof(char), searchResult.searchTermLen +1);
@@ -1197,7 +1211,8 @@ static void refreshSearchResult(char * buf) {
         memcpy(one, searchResult.result, searchResult.searchTermIndex);
         memcpy(two, &searchResult.result[searchResult.searchTermIndex], searchResult.searchTermLen);
         memcpy(three, &searchResult.result[searchResult.searchTermIndex+searchResult.searchTermLen], searchResult.len - (searchResult.searchTermIndex+searchResult.searchTermLen));
-        sprintf(searchResultG, "%s%s%s%s%s%s", normal, one, bold, two, normal, three);
+        sprintf(searchResultG, "%s%s%s", one, two, three);
+        sprintf(searchResultFriendlyG, "%s%s%s%s%s%s", normal, one, bold, two, normal, three);
         free(one);
         free(two);
         free(three);
