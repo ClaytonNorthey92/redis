@@ -121,6 +121,7 @@
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096
+
 static char *unsupported_term[] = {"dumb","cons25","emacs",NULL};
 static linenoiseCompletionCallback *completionCallback = NULL;
 static linenoiseHintsCallback *hintsCallback = NULL;
@@ -137,6 +138,7 @@ static char **history = NULL;
 static char * searchResultG = NULL;
 static char * searchResultFriendlyG = NULL;
 static int reverseSearchMode = 0;
+static int searchResultIG = 0;
 
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
@@ -164,6 +166,7 @@ enum KEY_ACTION{
 	CTRL_D = 4,         /* Ctrl-d */
 	CTRL_E = 5,         /* Ctrl-e */
 	CTRL_F = 6,         /* Ctrl-f */
+    CTRL_G = 7,         /* Ctrl-g */
 	CTRL_H = 8,         /* Ctrl-h */
 	TAB = 9,            /* Tab */
 	NL = 10,            /* Enter typed before raw mode was enabled */
@@ -172,7 +175,7 @@ enum KEY_ACTION{
 	ENTER = 13,         /* Enter */
 	CTRL_N = 14,        /* Ctrl-n */
 	CTRL_P = 16,        /* Ctrl-p */
-    CTRL_R = 18,        /* Ctrl-p */
+    CTRL_R = 18,        /* Ctrl-r */
 	CTRL_T = 20,        /* Ctrl-t */
 	CTRL_U = 21,        /* Ctrl+u */
 	CTRL_W = 23,        /* Ctrl+w */
@@ -183,7 +186,7 @@ enum KEY_ACTION{
 static void linenoiseAtExit(void);
 int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
-static void refreshSearchResult(char * buf);
+static void refreshSearchResult(struct linenoiseState * ls);
 
 /* Debugging macro. */
 #if 0
@@ -620,6 +623,8 @@ static void refreshMultiLine(struct linenoiseState *l) {
     /* Show hits if any. */
     refreshShowHints(&ab,l,plen);
 
+    refreshSearchResult(l);
+
     /* If we are at the very end of the screen with our prompt, we need to
      * emit a newline and move the prompt to the first column. */
     if (l->pos &&
@@ -776,9 +781,8 @@ void linenoiseEditBackspace(struct linenoiseState *l) {
         l->pos--;
         l->len--;
         l->buf[l->len] = '\0';
-        refreshSearchResult(l->buf);
-        refreshLine(l);
     }
+    refreshLine(l);
 }
 
 /* Delete the previous word, maintaining the cursor at the start of the
@@ -874,6 +878,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             }
             return (int)l.len;
         case CTRL_C:     /* ctrl-c */
+            reverseSearchMode = 0;
+            printf("\e[?25h");
             errno = EAGAIN;
             return -1;
         case BACKSPACE:   /* backspace */
@@ -905,16 +911,20 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         case CTRL_F:     /* ctrl-f */
             linenoiseEditMoveRight(&l);
             break;
+        case CTRL_G:     /* ctrl-g */
+            reverseSearchMode = 0;
+            printf("\e[?25h");
+            return 0;
         case CTRL_P:    /* ctrl-p */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
             break;
         case CTRL_R:
-            reverseSearchMode = !reverseSearchMode;
-            if (reverseSearchMode) {
-                printf("\e[?25l");
-            } else {
-                printf("\e[?25h");
+            if (reverseSearchMode == 1) {
+                // cycle search results
+                return 0;
             }
+            reverseSearchMode = 1;
+            printf("\e[?25l");
             return 0;
         case CTRL_N:    /* ctrl-n */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
@@ -976,8 +986,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             break;
         default:
             if (linenoiseEditInsert(&l,c)) return -1;
-
-            refreshSearchResult(l.buf);
             refreshLine(&l);
             break;
         case CTRL_U: /* Ctrl+u, delete the whole line. */
@@ -1185,7 +1193,11 @@ int linenoiseHistoryAdd(const char *line) {
     return 1;
 }
 
-static void refreshSearchResult(char * buf) {
+static void refreshSearchResult(struct linenoiseState * ls) {
+    if (!reverseSearchMode) {
+        return;
+    }
+
     if (searchResultG != NULL) {
         free(searchResultG);
         free(searchResultFriendlyG);
@@ -1193,11 +1205,7 @@ static void refreshSearchResult(char * buf) {
         searchResultFriendlyG = NULL;
     }
 
-    if (!reverseSearchMode) {
-        return;
-    }
-
-    linenoiseHistorySearchResult searchResult = linenoiseSearchInHistory(buf);
+    linenoiseHistorySearchResult searchResult = linenoiseSearchInHistory(ls->buf);
     if (searchResult.result && searchResult.len) {
         char * bold = "\x1B[1m";
         char * normal = "\x1B[0m";
@@ -1208,11 +1216,14 @@ static void refreshSearchResult(char * buf) {
         char * one = calloc(sizeof(char), searchResult.searchTermIndex + 1);
         char * two = calloc(sizeof(char), searchResult.searchTermLen +1);
         char * three = calloc(sizeof(char), searchResult.len - (searchResult.searchTermIndex+searchResult.searchTermLen) + 1);
+       
         memcpy(one, searchResult.result, searchResult.searchTermIndex);
         memcpy(two, &searchResult.result[searchResult.searchTermIndex], searchResult.searchTermLen);
         memcpy(three, &searchResult.result[searchResult.searchTermIndex+searchResult.searchTermLen], searchResult.len - (searchResult.searchTermIndex+searchResult.searchTermLen));
+        
         sprintf(searchResultG, "%s%s%s", one, two, three);
         sprintf(searchResultFriendlyG, "%s%s%s%s%s%s", normal, one, bold, two, normal, three);
+        
         free(one);
         free(two);
         free(three);
@@ -1293,6 +1304,7 @@ int linenoiseHistoryLoad(const char *filename) {
 
 linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm) {
     linenoiseHistorySearchResult result = {0};
+    searchResultIG = 0;
     for (int i = history_len-1;searchTerm && i>=0;i--) {
         char * found = strstr(history[i], searchTerm);
         if (found) {
@@ -1301,9 +1313,15 @@ linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm) {
             result.len = strlen(history[i]);
             result.searchTermIndex = haystackIndex;
             result.searchTermLen = strlen(searchTerm);
+            searchResultIG = i;
             break;
         }
     }
+    return result;
+}
+
+linenoiseHistorySearchResult linenoiseHistoryCycleToNext() {
+    linenoiseHistorySearchResult result = {0};
     return result;
 }
 
