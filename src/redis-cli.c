@@ -341,7 +341,8 @@ static void cliRefreshPrompt(void) {
         prompt = sdscatfmt(prompt,"(subscribed mode)");
 
     if (linenoiseReverseSearchModeEnabled()) {
-        prompt = sdscatlen(prompt, "(reverse-i-search)", 18);
+        char * reverseISearchPrompt = " (reverse-i-search)";
+        prompt = sdscatlen(prompt, reverseISearchPrompt, strlen(reverseISearchPrompt));
     }
 
     /* Copy the prompt in the static buffer. */
