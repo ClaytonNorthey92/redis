@@ -139,6 +139,7 @@ static char * searchResultG = NULL;
 static char * searchResultFriendlyG = NULL;
 static int reverseSearchMode = 0;
 static int searchResultIG = 0;
+static int cycleToNextSearchResult = 0;
 
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
@@ -921,7 +922,9 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         case CTRL_R:
             if (reverseSearchMode == 1) {
                 // cycle search results
-                return 0;
+                cycleToNextSearchResult = 1;
+                refreshLine(&l);
+                break;
             }
             reverseSearchMode = 1;
             printf("\e[?25l");
@@ -1205,7 +1208,8 @@ static void refreshSearchResult(struct linenoiseState * ls) {
         searchResultFriendlyG = NULL;
     }
 
-    linenoiseHistorySearchResult searchResult = linenoiseSearchInHistory(ls->buf);
+    linenoiseHistorySearchResult searchResult = linenoiseSearchInHistory(ls->buf, cycleToNextSearchResult);
+    cycleToNextSearchResult = 0;
     if (searchResult.result && searchResult.len) {
         char * bold = "\x1B[1m";
         char * normal = "\x1B[0m";
@@ -1302,10 +1306,18 @@ int linenoiseHistoryLoad(const char *filename) {
     return 0;
 }
 
-linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm) {
+linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm, int cycleToNext) {
     linenoiseHistorySearchResult result = {0};
-    searchResultIG = 0;
-    for (int i = history_len-1;searchTerm && i>=0;i--) {
+    int i = cycleToNext ? searchResultIG : history_len-1;
+
+    if (!cycleToNext) {
+        searchResultIG = 0;
+    }
+
+    if (cycleToNext && --i == 0) {
+        i = history_len-1; 
+    }
+    for (;i>=0;i--) {
         char * found = strstr(history[i], searchTerm);
         if (found) {
             int haystackIndex = found - history[i];
@@ -1316,12 +1328,12 @@ linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm) {
             searchResultIG = i;
             break;
         }
-    }
-    return result;
-}
 
-linenoiseHistorySearchResult linenoiseHistoryCycleToNext() {
-    linenoiseHistorySearchResult result = {0};
+        if (cycleToNext && i == 0) {
+            i = history_len-1;
+        }
+    }
+
     return result;
 }
 

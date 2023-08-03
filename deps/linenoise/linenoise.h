@@ -62,7 +62,7 @@ void linenoiseSetCompletionCallback(linenoiseCompletionCallback *);
 void linenoiseSetHintsCallback(linenoiseHintsCallback *);
 void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback *);
 void linenoiseAddCompletion(linenoiseCompletions *, const char *);
-linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm);
+linenoiseHistorySearchResult linenoiseSearchInHistory(char * searchTerm, int cycleToNext);
 
 char *linenoise(const char *prompt);
 void linenoiseFree(void *ptr);
