@@ -310,6 +310,10 @@ static int getCursorPosition(int ifd, int ofd) {
 /* Try to get the number of columns in the current terminal, or assume 80
  * if it fails. */
 static int getColumns(int ifd, int ofd) {
+    if (getenv("FAKETTY") != NULL) {
+        return 80;
+    }
+
     struct winsize ws;
 
     if (ioctl(1, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
@@ -846,7 +850,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         if (nread <= 0) return l.len;
 
 
-
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
@@ -1057,7 +1060,7 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
         return -1;
     }
 
-    if (enableRawMode(STDIN_FILENO) == -1) return -1;
+    if (getenv("FAKETTY") == NULL && enableRawMode(STDIN_FILENO) == -1) return -1;
     count = linenoiseEdit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt);
     disableRawMode(STDIN_FILENO);
     printf("\n");
@@ -1106,14 +1109,19 @@ static char *linenoiseNoTTY(void) {
  * editing function or uses dummy fgets() so that you will be able to type
  * something even in the most desperate of the conditions. */
 char *linenoise(const char *prompt) {
+    if (getenv("FORCE_REVERSE_SEARCH_MODE") != NULL) {
+        reverseSearchMode = 1;
+    }
+
+
     char buf[LINENOISE_MAX_LINE];
     int count;
 
-    if (!isatty(STDIN_FILENO)) {
+    if (getenv("FAKETTY") == NULL && !isatty(STDIN_FILENO)) {
         /* Not a tty: read from file / pipe. In this mode we don't want any
          * limit to the line size, so we call a function to handle that. */
         return linenoiseNoTTY();
-    } else if (isUnsupportedTerm()) {
+    } else if (getenv("FAKETTY") == NULL && isUnsupportedTerm()) {
         size_t len;
 
         printf("%s",prompt);
