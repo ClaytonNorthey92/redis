@@ -3350,8 +3350,8 @@ static void repl(void) {
         cliLoadPreferences();
     }
 
+    cliRefreshPrompt();
     while(1) {
-        cliRefreshPrompt();
         line = linenoise(context ? config.prompt : "not connected> ");
         if (line == NULL) {
             /* ^C, ^D or similar. */

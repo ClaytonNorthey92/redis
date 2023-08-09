@@ -992,7 +992,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             break;
         default:
             if (linenoiseEditInsert(&l,c)) return -1;
-            refreshLine(&l);
             break;
         case CTRL_U: /* Ctrl+u, delete the whole line. */
             buf[0] = '\0';
