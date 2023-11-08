@@ -34,6 +34,8 @@ jobs:
         run: make SANITIZER=address REDIS_CFLAGS='-Werror' BUILD_TLS=module
       - name: testprep
         run: sudo apt-get install tcl8.6 tclx -y
+      - name: check gcc version
+        run: gcc --version
       - name: test
         run: ./runtest --verbose --tags -slow --dump-logs
       - name: module api test
