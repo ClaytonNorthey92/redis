@@ -6,6 +6,14 @@ if {$::singledb} {
     set ::dbnum 9
 }
 
+if {[exec "uname"] == "Linux"} {
+    set ::breakline "\r"
+} else {
+    set ::breakline "\r"
+}
+
+puts "using $::breakline to break lines in tests"
+
 start_server {tags {"cli"}} {
     proc open_cli {{opts ""} {infile ""}} {
         if { $opts == "" } {
@@ -152,21 +160,27 @@ start_server {tags {"cli"}} {
     }
 
     test_interactive_cli_with_prompt "should find first search result" {
-        run_command $fd "keys one\x0D"
-        run_command $fd "keys two\x0D"
+        puts "writing commands"
+        run_command $fd "keys one$::breakline"
+        run_command $fd "keys two$::breakline"
 
         puts $fd "\x12"
+
+        puts "reading cli"
         read_cli $fd
 
+        puts "writing command again"
         puts -nonewline $fd "ey"
+
+        puts "reading cli again"
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*\[[0-9]] \(reverse-i-search\)> \x1B\[0mk\x1B\[1mey\x1B\[0ms two} $result]
     }
 
     test_interactive_cli_with_prompt "should find and use the first search result" {
         set now [clock seconds]
-        run_command $fd "SET blah \"myvalue\"\x0D"
-        run_command $fd "GET blah\x0D"
+        run_command $fd "SET blah \"myvalue\"$::breakline"
+        run_command $fd "GET blah$::breakline"
 
         puts $fd "\x12"
         read_cli $fd
@@ -175,7 +189,7 @@ start_server {tags {"cli"}} {
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*\[[0-9]] \(reverse-i-search\)> \x1B\[0mG\x1B\[1mET b\x1B\[0mlah} $result]
 
-        puts $fd "\x0D"
+        puts $fd "$::breakline"
         set result2 [read_cli $fd]
         assert_equal 1 [regexp {.*"myvalue"\n} $result2]
     }
@@ -186,13 +200,13 @@ start_server {tags {"cli"}} {
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*\[[0-9]] \(reverse-i-search\)>} $result]
 
-        set result2 [run_command $fd "keys \"$now\"\x0D"]
+        set result2 [run_command $fd "keys \"$now\"$::breakline"]
         assert_equal 1 [regexp {.*(empty array).*} $result2]
     }
 
     test_interactive_cli_with_prompt "should find second search result if user presses ctrl+r again" {
-        run_command $fd "keys one\x0D"
-        run_command $fd "keys two\x0D"
+        run_command $fd "keys one$::breakline"
+        run_command $fd "keys two$::breakline"
 
         puts $fd "\x12"
         read_cli $fd
