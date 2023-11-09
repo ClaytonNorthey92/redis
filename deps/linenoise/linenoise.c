@@ -193,14 +193,12 @@ int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
 static void refreshSearchResult(struct linenoiseState * ls);
 
+__attribute__((no_sanitize_address))
 static inline void resetSearchResult(void) {
     if (search_result != NULL) {
         free(search_result);
-        search_result = NULL;
-    }
-
-    if (search_result_friendly != NULL) {
         free(search_result_friendly);
+        search_result = NULL;
         search_result_friendly = NULL;
     }
 }
