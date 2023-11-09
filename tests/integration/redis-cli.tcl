@@ -7,7 +7,7 @@ if {$::singledb} {
 }
 
 if {[exec "uname"] == "Linux"} {
-    set ::breakline "\r"
+    set ::breakline "\n"
 } else {
     set ::breakline "\r"
 }
