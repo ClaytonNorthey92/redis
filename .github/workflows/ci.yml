@@ -37,7 +37,7 @@ jobs:
       - name: check gcc version
         run: gcc --version
       - name: test
-        run: ./runtest --verbose --tags -slow --dump-logs --only redis-cli
+        run: ./runtest --verbose --tags -slow --dump-logs
       - name: module api test
         run: ./runtest-moduleapi --verbose --dump-logs
 
