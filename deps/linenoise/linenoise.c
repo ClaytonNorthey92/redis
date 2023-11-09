@@ -191,9 +191,10 @@ enum KEY_ACTION{
 static void linenoiseAtExit(void);
 int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
-static void refreshSearchResult(struct linenoiseState * ls);
 
 __attribute__((no_sanitize_address))
+static void refreshSearchResult(struct linenoiseState * ls);
+
 static inline void resetSearchResult(void) {
     if (search_result != NULL) {
         free(search_result);
