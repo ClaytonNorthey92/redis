@@ -191,14 +191,14 @@ enum KEY_ACTION{
 static void linenoiseAtExit(void);
 int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
-
-__attribute__((no_sanitize_address))
 static void refreshSearchResult(struct linenoiseState * ls);
 
 static inline void resetSearchResult(void) {
     if (search_result != NULL) {
-        free(search_result);
-        free(search_result_friendly);
+
+        // revert this! do not let it go to prod
+        // free(search_result);
+        // free(search_result_friendly);
         search_result = NULL;
         search_result_friendly = NULL;
     }
