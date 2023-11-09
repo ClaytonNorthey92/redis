@@ -195,10 +195,8 @@ static void refreshSearchResult(struct linenoiseState * ls);
 
 static inline void resetSearchResult(void) {
     if (search_result != NULL) {
-
-        // revert this! do not let it go to prod
-        // free(search_result);
-        // free(search_result_friendly);
+        free(search_result);
+        free(search_result_friendly);
         search_result = NULL;
         search_result_friendly = NULL;
     }
