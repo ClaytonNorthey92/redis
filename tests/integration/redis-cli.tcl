@@ -6,11 +6,7 @@ if {$::singledb} {
     set ::dbnum 9
 }
 
-if {[exec "uname"] == "Linux"} {
-    set ::breakline "\n"
-} else {
-    set ::breakline "\r"
-}
+set ::breakline "\r"
 
 puts "using $::breakline to break lines in tests"
 
