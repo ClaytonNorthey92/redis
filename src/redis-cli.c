@@ -3388,7 +3388,7 @@ static void repl(void) {
             we should ensure that the line is persisted to the next call to linenoise
         */
         if (linenoiseRequestOnlyPromptRefresh()) {
-            if (line != NULL) {
+            if (line != NULL && strlen(line) > 0) {
                 lineCpy = strdup(line);
                 linenoiseFree(line);
             }
