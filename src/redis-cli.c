@@ -3372,8 +3372,8 @@ static void repl(void) {
         cliLoadPreferences();
     }
 
+    char * lineCpy = NULL;
     while(1) {
-        static char * lineCpy = NULL;
         cliRefreshPrompt();
         line = linenoise(context ? config.prompt : "not connected> ", lineCpy, lineCpy == NULL ? 0 : strlen(lineCpy));
         if (lineCpy != NULL) {
