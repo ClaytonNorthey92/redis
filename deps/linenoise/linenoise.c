@@ -883,6 +883,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         if (nread <= 0) return l.len;
 
         printf("read char: %c\n", c);
+        fflush(stdout);
 
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
