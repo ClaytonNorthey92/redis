@@ -3381,6 +3381,8 @@ static void repl(void) {
             lineCpy = NULL;
         }
         
+        printf("line = %s\n", line);
+
         /*
             there are cases where we only want to refresh the prompt, in these cases,
             we should ensure that the line is persisted to the next call to linenoise
