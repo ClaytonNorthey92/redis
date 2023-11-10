@@ -168,6 +168,7 @@ start_server {tags {"cli"}} {
         puts -nonewline $fd "ey"
         after 1000
         flush $fd
+        after 1000
 
         # this line 
         set result [read_cli $fd]
