@@ -879,6 +879,9 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         int nread;
         char seq[3];
 
+        printf("reading");
+        fflush(stdout);
+
         nread = read(l.ifd,&c,1);
         if (nread <= 0) return l.len;
 
