@@ -95,7 +95,7 @@ endif
 ifdef SANITIZER
 ifeq ($(SANITIZER),address)
 	MALLOC=libc
-	CFLAGS+=-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer
+	CFLAGS+=-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer -g -O1
 	LDFLAGS+=-fsanitize=address
 else
 ifeq ($(SANITIZER),undefined)
