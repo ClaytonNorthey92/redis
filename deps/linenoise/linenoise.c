@@ -705,6 +705,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
 /* Calls the two low level functions refreshSingleLine() or
  * refreshMultiLine() according to the selected mode. */
 static void refreshLine(struct linenoiseState *l) {
+    printf("refreshLine\n");
     if (mlmode)
         refreshMultiLine(l);
     else
