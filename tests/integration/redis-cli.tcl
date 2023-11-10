@@ -156,16 +156,16 @@ start_server {tags {"cli"}} {
     }
 
     test_interactive_cli_with_prompt "should find first search result" {
-        # puts "writing commands"
-        # flush stdout
-        # run_command $fd "keys one$::breakline"
-        # run_command $fd "keys two$::breakline"
+        puts "writing commands"
+        flush stdout
+        run_command $fd "keys one$::breakline"
+        run_command $fd "keys two$::breakline"
 
-        # puts $fd "\x12"
+        puts $fd "\x12"
 
-        # puts "reading cli"
-        # flush stdout
-        # read_cli $fd
+        puts "reading cli"
+        flush stdout
+        read_cli $fd
 
         # puts "writing command again"
         # flush stdout
