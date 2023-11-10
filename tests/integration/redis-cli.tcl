@@ -35,10 +35,16 @@ start_server {tags {"cli"}} {
     }
 
     proc read_cli {fd} {
+        puts "reading cli"
+        flush stdout
         set ret [read $fd]
+        puts "read $ret"
+        flush stdout
         while {[string length $ret] == 0} {
             after 10
             set ret [read $fd]
+            puts "read $ret"
+            flush stdout
         }
 
         # We may have a short read, try to read some more.
