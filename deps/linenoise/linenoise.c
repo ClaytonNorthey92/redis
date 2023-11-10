@@ -716,7 +716,6 @@ static void refreshLine(struct linenoiseState *l) {
  *
  * On error writing to the terminal -1 is returned, otherwise 0. */
 int linenoiseEditInsert(struct linenoiseState *l, char c) {
-    printf("linenoiseEditInsert l->len=%d, l->buflen=%d, l->pos=%d, l->cols=%d\n", l->len, l->buflen, l->pos, l->cols);
     if (l->len < l->buflen) {
         if (l->len == l->pos) {
             l->buf[l->pos] = c;
@@ -882,6 +881,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
 
         nread = read(l.ifd,&c,1);
         if (nread <= 0) return l.len;
+
+        printf("read char: %c\n", c);
 
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
