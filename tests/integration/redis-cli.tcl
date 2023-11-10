@@ -166,11 +166,11 @@ start_server {tags {"cli"}} {
         # checkpoint
 
         puts -nonewline $fd "ey"
+        after 1000
+        flush $fd
 
         # this line 
         set result [read_cli $fd]
-        flush $fd
-
 
         # assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*\[[0-9]] \(reverse-i-search\)> \x1B\[0mk\x1B\[1mey\x1B\[0ms two} $result]
     }
