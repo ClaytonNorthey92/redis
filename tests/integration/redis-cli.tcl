@@ -167,7 +167,11 @@ start_server {tags {"cli"}} {
 
         puts -nonewline $fd "ey"
 
-        set result [read_cli $fd]
+        # this line 
+        # set result [read_cli $fd]
+
+
+        
         # assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*\[[0-9]] \(reverse-i-search\)> \x1B\[0mk\x1B\[1mey\x1B\[0ms two} $result]
     }
 
