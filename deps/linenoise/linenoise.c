@@ -1377,7 +1377,9 @@ linenoiseHistorySearchResult searchInHistory(char * searchTerm) {
     return result;
 }
 static void refreshSearchResult(struct linenoiseState * ls) {
+    printf("refreshing search result");
     if (skip_search) {
+        printf("skipping search");
         skip_search = 0;
         return;
     }
