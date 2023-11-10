@@ -1110,6 +1110,7 @@ void linenoisePrintKeyCodes(void) {
 /* This function calls the line editing function linenoiseEdit() using
  * the STDIN file descriptor set in raw mode. */
 static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
+    printf("linenoiseRaw(%X, %d, %X), enableRawMode() = %d\n", buf, buflen, prompt, enableRawMode(STDIN_FILENO));
     int count;
 
     if (buflen == 0) {
