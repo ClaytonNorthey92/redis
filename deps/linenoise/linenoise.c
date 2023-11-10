@@ -638,10 +638,12 @@ static void refreshMultiLine(struct linenoiseState *l) {
 
     /* Write the prompt and the current buffer content */
     abAppend(&ab,l->prompt,strlen(l->prompt));
+    printf("maskmode is %d\n", maskmode);
     if (maskmode == 1) {
         unsigned int i;
         for (i = 0; i < l->len; i++) abAppend(&ab,"*",1);
     } else {
+        printf("refreshing search result\n");
         refreshSearchResult(l);
         if (search_result) {
             abAppend(&ab, search_result_friendly, strlen(search_result_friendly));
@@ -1377,9 +1379,7 @@ linenoiseHistorySearchResult searchInHistory(char * searchTerm) {
     return result;
 }
 static void refreshSearchResult(struct linenoiseState * ls) {
-    printf("refreshing search result");
     if (skip_search) {
-        printf("skipping search");
         skip_search = 0;
         return;
     }
