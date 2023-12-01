@@ -114,20 +114,7 @@ dbIterator *dbIteratorInit(redisDb *db, dbKeyType keyType) {
     return dbit;
 }
 
-/* Returns DB iterator that can be used to iterate through sub-dictionaries.
- *
- * The caller should free the resulting dbit with dbReleaseIterator. */
-dbIterator *dbIteratorInitFromSlot(redisDb *db, dbKeyType keyType, int slot) {
-    dbIterator *dbit = zmalloc(sizeof(*dbit));
-    dbit->db = db;
-    dbit->slot = slot;
-    dbit->keyType = keyType;
-    dbit->next_slot = dbGetNextNonEmptySlot(dbit->db, dbit->slot, dbit->keyType);
-    dictInitSafeIterator(&dbit->di, NULL);
-    return dbit;
-}
-
-/* Free the dbit returned by dbIteratorInit or dbIteratorInitFromSlot. */
+/* Free the dbit returned by dbIteratorInit. */
 void dbReleaseIterator(dbIterator *dbit) {
     dictIterator *iter = &dbit->di;
     dictResetIterator(iter);
@@ -525,7 +512,7 @@ int getFairRandomSlot(redisDb *db, dbKeyType keyType) {
  *
  * In this case slot #3 contains key that we are trying to find.
  * 
- * This function is 1 based and the range of the target is [1..dbSize], dbSize inclusive.
+ * The return value is 0 based slot, and the range of the target is [1..dbSize], dbSize inclusive.
  * 
  * To find the slot, we start with the root node of the binary index tree and search through its children
  * from the highest index (2^14 in our case) to the lowest index. At each node, we check if the target 
@@ -547,8 +534,13 @@ int findSlotByKeyIndex(redisDb *db, unsigned long target, dbKeyType keyType) {
             result = current;
         }
     }
-    /* Unlike BIT, slots are 0-based, so we need to subtract 1, but we also need to add 1,
-     * since we want the next slot. */
+    /* Adjust the result to get the correct slot:
+     * 1. result += 1;
+     *    After the calculations, the index of target in slot_size_index should be the next one,
+     *    so we should add 1.
+     * 2. result -= 1;
+     *    Unlike BIT(slot_size_index is 1-based), slots are 0-based, so we need to subtract 1.
+     * As the addition and subtraction cancel each other out, we can simply return the result. */
     return result;
 }
 
@@ -682,7 +674,7 @@ long long emptyDbStructure(redisDb *dbarray, int dbnum, int async,
         dbarray[j].expires_cursor = 0;
         for (dbKeyType subdict = DB_MAIN; subdict <= DB_EXPIRES; subdict++) {
             dbarray[j].sub_dict[subdict].key_count = 0;
-            dbarray[j].sub_dict[subdict].resize_cursor = 0;
+            dbarray[j].sub_dict[subdict].resize_cursor = -1;
             if (server.cluster_enabled) {
                 if (dbarray[j].sub_dict[subdict].rehashing)
                     listEmpty(dbarray[j].sub_dict[subdict].rehashing);
