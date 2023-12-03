@@ -316,6 +316,18 @@ start_server {tags {"cli"}} {
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])?>} $result2]
     }
 
+    test_interactive_cli_with_prompt "should exit reverse search if user presses escape" {
+        run_command $fd ""
+
+        puts $fd "\x12"
+        set result [read_cli $fd]
+        assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])? \(reverse-i-search\)>} $result]
+
+        puts $fd "\x1B"
+        set result2 [read_cli $fd]
+        assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])?>} $result2]
+    }
+
     test_interactive_cli_with_prompt "should disable and persist line if user presses tab" {
         run_command $fd ""
 

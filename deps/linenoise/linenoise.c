@@ -117,6 +117,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <poll.h>
 #include "linenoise.h"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
@@ -124,6 +125,16 @@
 #define LINENOISE_NO_CYCLE 0
 #define LINENOISE_CYCLE_BACKWARD 1
 #define LINENOISE_CYCLE_FORWARD 2
+
+#define DISABLE_SEARCH_AND_RETURN_IF_ENABLED() {\
+    if (linenoiseReverseSearchModeEnabled()) {\
+        disableReverseSearchMode();\
+        buf[0] = '\0';\
+        l.pos = l.len = 0;\
+        return 0;\
+    }\
+}
+
 static char *unsupported_term[] = {"dumb","cons25","emacs",NULL};
 static linenoiseCompletionCallback *completionCallback = NULL;
 static linenoiseHintsCallback *hintsCallback = NULL;
@@ -148,6 +159,7 @@ static int skip_search = 0;
 static int search_result_submitted = 0;
 
 static int only_refresh_prompt = 0;
+static int persist_position = -1;
 
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
@@ -879,6 +891,14 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
     l.oldpos = l.pos = l.len;
 
     while(1) {
+        if (persist_position >= 0) {
+            int moves_left = l.len - persist_position;
+            while (moves_left-- > 0) {
+                linenoiseEditMoveLeft(&l);
+            }
+            persist_position = -1;
+        }
+
         char c;
         int nread;
         char seq[3];
@@ -1003,18 +1023,36 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
             break;
         case ESC:    /* escape sequence */
+
+            if (linenoiseReverseSearchModeEnabled()) {
+
+                /*
+                * if search mode is enabled, poll the input fd for a short period
+                * of time, if the user pressed the escape key (no escape sequence),
+                * there should be no bytes available, so return
+                */  
+
+                struct pollfd _pfd = {
+                    .fd = l.ifd,
+                    .events = POLLIN,
+                };
+
+                int result = poll(&_pfd, 1, 0);
+                if (result == -1) {
+                    break;
+                }
+
+                if ((_pfd.revents & POLLIN) == 0){
+                    DISABLE_SEARCH_AND_RETURN_IF_ENABLED()
+                }
+            }
+
             /* Read the next two bytes representing the escape sequence.
              * Use two calls to handle slow terminals returning the two
              * chars at different times. */
             if (read(l.ifd,seq,1) == -1) break;
             if (read(l.ifd,seq+1,1) == -1) break;
 
-            if (linenoiseReverseSearchModeEnabled()) {
-                disableReverseSearchMode();
-                buf[0] = '\0';
-                l.pos = l.len = 0;
-                return 0;
-            }
 
             /* ESC [ sequences. */
             if (seq[0] == '[') {
@@ -1024,6 +1062,27 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                     if (seq[2] == '~') {
                         switch(seq[1]) {
                         case '3': /* Delete key. */
+                            if (linenoiseReverseSearchModeEnabled()) {
+                                /*
+                                * if search is enabled and the user presses the forward delete key,
+                                * we need to delete the letter they were on + move the cursor to that
+                                * spot (persist it) + disable search mode
+                                */
+                                if (strlen(search_result) > 0) {
+                                    if (l.pos < strlen(search_result) - 1) {
+                                        for (int i=l.pos+1;i<strlen(search_result);i++) {
+                                            search_result[i] = search_result[i+1];
+                                        }
+                                    }
+                                    memset(buf, 0, buflen);
+                                    memcpy(buf, search_result, strlen(search_result));
+                                }
+                                disableReverseSearchMode();
+                                only_refresh_prompt = 1;
+                                persist_position = l.pos + 1;
+                                linenoiseEditDelete(&l);
+                                return l.len;
+                            }
                             linenoiseEditDelete(&l);
                             break;
                         }
@@ -1031,15 +1090,19 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                 } else {
                     switch(seq[1]) {
                     case 'A': /* Up */
+                        DISABLE_SEARCH_AND_RETURN_IF_ENABLED()
                         linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
                         break;
                     case 'B': /* Down */
+                        DISABLE_SEARCH_AND_RETURN_IF_ENABLED()
                         linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
                         break;
                     case 'C': /* Right */
+                        DISABLE_SEARCH_AND_RETURN_IF_ENABLED()
                         linenoiseEditMoveRight(&l);
                         break;
                     case 'D': /* Left */
+                        DISABLE_SEARCH_AND_RETURN_IF_ENABLED()
                         linenoiseEditMoveLeft(&l);
                         break;
                     case 'H': /* Home */
