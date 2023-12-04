@@ -160,6 +160,7 @@ static int search_result_submitted = 0;
 
 static int only_refresh_prompt = 0;
 static int persist_position = -1;
+static int refresh_on_entry = 0;
 
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
@@ -882,6 +883,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
 
     l.buflen--; /* Make sure there is always space for the nulterm */
 
+
     /* The latest history entry is always our current buffer, that
      * initially is just an empty string. */
     linenoiseHistoryAdd("");
@@ -889,6 +891,11 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
     if (write(l.ofd,prompt,l.plen) == -1) return -1;
     if (write(l.ofd,buf,l.len) == -1) return -1;
     l.oldpos = l.pos = l.len;
+
+    if (refresh_on_entry) {
+        refresh_on_entry = 0;
+        refreshLine(&l);
+    }
 
     while(1) {
         if (persist_position >= 0) {
@@ -1004,6 +1011,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                 break;
             }
             enableReverseSearchMode();
+            only_refresh_prompt = 1;
+            refresh_on_entry = 1;
             return 0;
         case CTRL_S:
             if (linenoiseReverseSearchModeEnabled()) {

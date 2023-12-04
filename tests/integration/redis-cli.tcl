@@ -275,7 +275,7 @@ start_server {tags {"cli"}} {
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])? \(reverse-i-search\)>} $result]
 
-        puts $fd "\x1B\x5B\x41"
+        puts -nonewline  $fd "\x1B\x5B\x41"
         set result2 [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])?>} $result2]
     }
@@ -287,7 +287,7 @@ start_server {tags {"cli"}} {
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])? \(reverse-i-search\)>} $result]
 
-        puts $fd "\x1B\x5B\x42"
+        puts -nonewline $fd "\x1B\x5B\x42"
         set result2 [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])?>} $result2]
     }
@@ -299,7 +299,7 @@ start_server {tags {"cli"}} {
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])? \(reverse-i-search\)>} $result]
 
-        puts $fd "\x1B\x5B\x43"
+        puts -nonewline $fd "\x1B\x5B\x43"
         set result2 [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])?>} $result2]
     }
@@ -311,7 +311,7 @@ start_server {tags {"cli"}} {
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])? \(reverse-i-search\)>} $result]
 
-        puts $fd "\x1B\x5B\x44"
+        puts -nonewline $fd "\x1B\x5B\x44"
         set result2 [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])?>} $result2]
     }
@@ -323,7 +323,7 @@ start_server {tags {"cli"}} {
         set result [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])? \(reverse-i-search\)>} $result]
 
-        puts $fd "\x1B"
+        puts -nonewline $fd "\x1B"
         set result2 [read_cli $fd]
         assert_equal 1 [regexp {127\.0\.0\.1:[0-9]*(\[[0-9]])?>} $result2]
     }
