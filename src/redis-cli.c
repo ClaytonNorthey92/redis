@@ -3388,11 +3388,18 @@ static void repl(void) {
         /* there are cases where we only want to refresh the prompt, in these cases,
          * we should ensure that the line is persisted to the next call to linenoise */
         if (linenoiseRequestOnlyPromptRefresh()) {
+            linenoiseClearOnlyPromptRefresh();
+            
             if (line != NULL) {
                 lineCpy = strdup(line);
                 linenoiseFree(line);
             }
+
+            printf("\x1b[1F");
+            printf("\x1b[2K");
             continue;
+        } else if (linenoiseReverseSearchModeEnabled()) {
+            printf("\n");
         }
 
         if (line == NULL) {

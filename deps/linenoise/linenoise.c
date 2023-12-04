@@ -157,10 +157,10 @@ static int search_result_history_index = 0;
 static int search_result_start_offset = 0;
 static int skip_search = 0;
 static int search_result_submitted = 0;
+static int refresh_on_entry = 0;
 
 static int only_refresh_prompt = 0;
 static int persist_position = -1;
-static int refresh_on_entry = 0;
 
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
@@ -883,7 +883,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
 
     l.buflen--; /* Make sure there is always space for the nulterm */
 
-
     /* The latest history entry is always our current buffer, that
      * initially is just an empty string. */
     linenoiseHistoryAdd("");
@@ -1022,11 +1021,17 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                 break;
             }
             enableReverseSearchMode();
+            only_refresh_prompt = 1;
+            refresh_on_entry = 1;
             return 0;
         case CTRL_G:
+
+            // THIS IS NOT WORKING FIXME
             disableReverseSearchMode();
             buf[0] = '\0';
             l.pos = l.len = 0;
+            only_refresh_prompt = 1;
+            refresh_on_entry = 1;
             return 0;
         case CTRL_N:    /* ctrl-n */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
@@ -1208,7 +1213,9 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
     if (enableRawMode(STDIN_FILENO) == -1) return -1;
     count = linenoiseEdit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt);
     disableRawMode(STDIN_FILENO);
-    printf("\n");
+    if (!linenoiseRequestOnlyPromptRefresh()) {
+        printf("\n");
+    }
     return count;
 }
 
@@ -1258,7 +1265,6 @@ char *linenoise(const char *prompt) {
 }
 
 char *linenoiseWithBuffer(const char *prompt, const char *initial_buf, const int initial_buf_len) {
-    only_refresh_prompt = 0;
     char buf[LINENOISE_MAX_LINE] = {0};
 
     if (initial_buf_len > sizeof(buf)) {
@@ -1534,6 +1540,10 @@ static void refreshSearchResult(struct linenoiseState * ls) {
 
 int linenoiseRequestOnlyPromptRefresh(void) {
     return only_refresh_prompt;
+}
+
+void linenoiseClearOnlyPromptRefresh(void) {
+    only_refresh_prompt = 0;
 }
 
 int linenoiseSearchResultSumbitted(void) {
